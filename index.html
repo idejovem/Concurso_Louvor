@@ -30,9 +30,6 @@ button {
 }
 
 .main-btn { background: #ff6a00; color: white; font-size: 20px; }
-.vote-btn { background: #00c853; color: white; }
-.edit-btn { background: #2196f3; color: white; }
-.del-btn { background: red; color: white; }
 
 .admin-btn {
   position: fixed;
@@ -47,6 +44,7 @@ button {
   padding: 15px;
   margin: 10px;
   border-radius: 12px;
+  cursor: pointer;
 }
 
 .selected { border: 2px solid #ff6a00; }
@@ -61,7 +59,6 @@ input {
 
 <body>
 
-<!-- HOME -->
 <div id="home" class="screen active">
   <img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
   <h2>Concurso de Louvor</h2>
@@ -70,7 +67,6 @@ input {
   <button class="admin-btn" onclick="ir('login')">ADM</button>
 </div>
 
-<!-- VOTAR -->
 <div id="votar" class="screen">
   <h2>Escolha um participante</h2>
   <div id="listaVotar"></div>
@@ -80,7 +76,6 @@ input {
   <button onclick="ir('home')">Voltar</button>
 </div>
 
-<!-- LOGIN -->
 <div id="login" class="screen">
   <h2>Área ADM</h2>
 
@@ -91,7 +86,6 @@ input {
   <button onclick="ir('home')">Voltar</button>
 </div>
 
-<!-- ADMIN -->
 <div id="admin" class="screen">
   <h2>Painel ADM</h2>
 
@@ -104,8 +98,7 @@ input {
 </div>
 
 <script>
-const { createClient } = supabase;
-const supabaseClient = createClient(
+const supabaseClient = supabase.createClient(
   "https://domjktwbgysvjrlqrcdr.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvbWprdHdiZ3lzdmpybHFyY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjcwNDMsImV4cCI6MjA5MjAwMzA0M30.9lL54NbCxywjdNgo5MdZDSWmmLj3dMqR_788zwGP354"
 );
@@ -118,11 +111,10 @@ function ir(tela) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(tela).classList.add("active");
 
-  if (tela === "votar") carregar();
-  if (tela === "admin") carregar();
+  if (tela === "votar" || tela === "admin") carregar();
 }
 
-/* LOGIN SIMPLES */
+/* LOGIN */
 async function login() {
   let user = document.getElementById("user").value;
   let senha = document.getElementById("senha").value;
@@ -133,10 +125,7 @@ async function login() {
     .eq("usuario", user)
     .eq("senha", senha);
 
-  if (error) {
-    alert("Erro ao conectar");
-    return;
-  }
+  if (error) return alert("Erro ao conectar");
 
   if (data.length > 0) {
     ir("admin");
@@ -145,11 +134,18 @@ async function login() {
   }
 }
 
-/* CARREGAR DADOS */
+/* CARREGAR */
 async function carregar() {
-  let { data } = await supabase.from("participantes").select("*");
-  participantes = data;
+  let { data, error } = await supabaseClient
+    .from("participantes")
+    .select("*");
 
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  participantes = data || [];
   renderVotar();
   renderAdmin();
 }
@@ -158,42 +154,33 @@ async function carregar() {
 async function adicionar() {
   let nome = document.getElementById("nome").value;
 
-  async function adicionar() {
-  let nome = document.getElementById("nome").value;
+  if (!nome) return alert("Digite um nome");
 
-  if (!nome) {
-    alert("Digite um nome");
-    return;
+  let { error } = await supabaseClient
+    .from("participantes")
+    .insert([{ nome: nome, votos: 0 }]);
+
+  if (error) {
+    console.error(error);
+    return alert("Erro ao adicionar");
   }
 
-  try {
-    let { error } = await supabaseClient
-      .from("participantes")
-      .insert([{ nome: nome, votos: 0 }]);
-
-    if (error) {
-      console.error(error);
-      alert("Erro ao adicionar!");
-      return;
-    }
-
-    alert("Participante adicionado!");
-    document.getElementById("nome").value = "";
-    carregar();
-
-  } catch (e) {
-    console.error(e);
-    alert("Erro inesperado!");
-  }
+  alert("Adicionado!");
+  document.getElementById("nome").value = "";
+  carregar();
 }
 
 /* EXCLUIR */
 async function excluir(id) {
-  await supabase.from("participantes").delete().eq("id", id);
+  await supabaseClient
+    .from("participantes")
+    .delete()
+    .eq("id", id);
+
   carregar();
 }
 
-/* VOTAR */
+/* RENDER VOTO */
 function renderVotar() {
   let lista = document.getElementById("listaVotar");
   if (!lista) return;
@@ -201,7 +188,7 @@ function renderVotar() {
   lista.innerHTML = "";
   selecionado = null;
 
-  participantes.forEach((p) => {
+  participantes.forEach(p => {
     lista.innerHTML += `
       <div class="card" onclick="selecionar(${p.id})" id="p${p.id}">
         ${p.nome}
@@ -216,12 +203,13 @@ function selecionar(id) {
   document.getElementById("p"+id).classList.add("selected");
 }
 
+/* VOTAR */
 async function confirmarVoto() {
   if (!selecionado) return alert("Escolha alguém");
 
   let p = participantes.find(x => x.id === selecionado);
 
-  await supabase
+  await supabaseClient
     .from("participantes")
     .update({ votos: p.votos + 1 })
     .eq("id", selecionado);
