@@ -123,9 +123,22 @@ function ir(tela) {
 }
 
 /* LOGIN SIMPLES */
-function login() {
-  if (document.getElementById("user").value === "admin" &&
-      document.getElementById("senha").value === "1234") {
+async function login() {
+  let user = document.getElementById("user").value;
+  let senha = document.getElementById("senha").value;
+
+  let { data, error } = await supabaseClient
+    .from("admin")
+    .select("*")
+    .eq("usuario", user)
+    .eq("senha", senha);
+
+  if (error) {
+    alert("Erro ao conectar");
+    return;
+  }
+
+  if (data.length > 0) {
     ir("admin");
   } else {
     alert("Login inválido");
