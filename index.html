@@ -158,9 +158,33 @@ async function carregar() {
 async function adicionar() {
   let nome = document.getElementById("nome").value;
 
-  await supabase.from("participantes").insert([{ nome, votos: 0 }]);
-  document.getElementById("nome").value = "";
-  carregar();
+  async function adicionar() {
+  let nome = document.getElementById("nome").value;
+
+  if (!nome) {
+    alert("Digite um nome");
+    return;
+  }
+
+  try {
+    let { error } = await supabaseClient
+      .from("participantes")
+      .insert([{ nome: nome, votos: 0 }]);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao adicionar!");
+      return;
+    }
+
+    alert("Participante adicionado!");
+    document.getElementById("nome").value = "";
+    carregar();
+
+  } catch (e) {
+    console.error(e);
+    alert("Erro inesperado!");
+  }
 }
 
 /* EXCLUIR */
