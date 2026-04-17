@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Concurso de Louvor</title>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
 body {
@@ -104,7 +104,8 @@ input {
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
+const { createClient } = supabase;
+const supabaseClient = createClient(
   "https://domjktwbgysvjrlqrcdr.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvbWprdHdiZ3lzdmpybHFyY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjcwNDMsImV4cCI6MjA5MjAwMzA0M30.9lL54NbCxywjdNgo5MdZDSWmmLj3dMqR_788zwGP354"
 );
