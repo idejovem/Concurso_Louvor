@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concurso de Louvor</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(180deg, #0a0f2c, #050816);
+  color: white;
+  text-align: center;
+}
+
+.screen { display: none; padding: 20px; }
+.active { display: block; }
+
+.logo { width: 200px; margin-top: 30px; }
+
+button {
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: none;
+  margin: 5px;
+  font-weight: bold;
+}
+
+.main-btn { background: #ff6a00; color: white; font-size: 20px; }
+.vote-btn { background: #00c853; color: white; }
+.edit-btn { background: #2196f3; color: white; }
+.del-btn { background: red; color: white; }
+
+.admin-btn {
+  position: fixed;
+  bottom: 5px;
+  left: 5px;
+  font-size: 10px;
+  opacity: 0.3;
+}
+
+.card {
+  background: #11183a;
+  padding: 15px;
+  margin: 10px;
+  border-radius: 12px;
+}
+
+.selected { border: 2px solid #ff6a00; }
+
+input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HOME -->
+<div id="home" class="screen active">
+  <img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
+  <h2>Concurso de Louvor</h2>
+
+  <button class="main-btn" onclick="ir('votar')">VOTAR</button>
+  <button class="admin-btn" onclick="ir('login')">ADM</button>
+</div>
+
+<!-- VOTAR -->
+<div id="votar" class="screen">
+  <h2>Escolha um participante</h2>
+  <div id="listaVotar"></div>
+
+  <button onclick="confirmarVoto()">Confirmar Voto</button>
+  <br>
+  <button onclick="ir('home')">Voltar</button>
+</div>
+
+<!-- LOGIN -->
+<div id="login" class="screen">
+  <h2>Área ADM</h2>
+
+  <input id="user" placeholder="Usuário">
+  <input id="senha" type="password" placeholder="Senha">
+  <button onclick="login()">Entrar</button>
+
+  <button onclick="ir('home')">Voltar</button>
+</div>
+
+<!-- ADMIN -->
+<div id="admin" class="screen">
+  <h2>Painel ADM</h2>
+
+  <input id="nome" placeholder="Nome do participante">
+  <button onclick="adicionar()">Adicionar</button>
+
+  <div id="listaAdmin"></div>
+
+  <button onclick="ir('home')">Sair</button>
+</div>
+
+<script>
+const supabase = window.supabase.createClient(
+  "https://domjktwbgysvjrlqrcdr.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvbWprdHdiZ3lzdmpybHFyY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjcwNDMsImV4cCI6MjA5MjAwMzA0M30.9lL54NbCxywjdNgo5MdZDSWmmLj3dMqR_788zwGP354"
+);
+
+let participantes = [];
+let selecionado = null;
+
+/* TROCAR TELA */
+function ir(tela) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(tela).classList.add("active");
+
+  if (tela === "votar") carregar();
+  if (tela === "admin") carregar();
+}
+
+/* LOGIN SIMPLES */
+function login() {
+  if (document.getElementById("user").value === "admin" &&
+      document.getElementById("senha").value === "1234") {
+    ir("admin");
+  } else {
+    alert("Login inválido");
+  }
+}
+
+/* CARREGAR DADOS */
+async function carregar() {
+  let { data } = await supabase.from("participantes").select("*");
+  participantes = data;
+
+  renderVotar();
+  renderAdmin();
+}
+
+/* ADICIONAR */
+async function adicionar() {
+  let nome = document.getElementById("nome").value;
+
+  await supabase.from("participantes").insert([{ nome, votos: 0 }]);
+  document.getElementById("nome").value = "";
+  carregar();
+}
+
+/* EXCLUIR */
+async function excluir(id) {
+  await supabase.from("participantes").delete().eq("id", id);
+  carregar();
+}
+
+/* VOTAR */
+function renderVotar() {
+  let lista = document.getElementById("listaVotar");
+  if (!lista) return;
+
+  lista.innerHTML = "";
+  selecionado = null;
+
+  participantes.forEach((p) => {
+    lista.innerHTML += `
+      <div class="card" onclick="selecionar(${p.id})" id="p${p.id}">
+        ${p.nome}
+      </div>
+    `;
+  });
+}
+
+function selecionar(id) {
+  selecionado = id;
+  document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
+  document.getElementById("p"+id).classList.add("selected");
+}
+
+async function confirmarVoto() {
+  if (!selecionado) return alert("Escolha alguém");
+
+  let p = participantes.find(x => x.id === selecionado);
+
+  await supabase
+    .from("participantes")
+    .update({ votos: p.votos + 1 })
+    .eq("id", selecionado);
+
+  alert("Voto computado!");
+  ir("home");
+}
+
+/* ADMIN */
+function renderAdmin() {
+  let lista = document.getElementById("listaAdmin");
+  if (!lista) return;
+
+  lista.innerHTML = "";
+
+  participantes.forEach(p => {
+    lista.innerHTML += `
+      <div class="card">
+        ${p.nome} - ${p.votos} votos<br>
+        <button onclick="excluir(${p.id})">Excluir</button>
+      </div>
+    `;
+  });
+}
+</script>
+
+</body>
+</html>
