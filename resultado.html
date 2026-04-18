@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resultado ao Vivo</title>
+<title>Resultado da Votação</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -17,12 +17,12 @@ body {
 }
 
 .logo {
-  width: 150px;
+  width: 140px;
   margin-top: 20px;
 }
 
 h1 {
-  margin-top: 10px;
+  margin: 10px 0;
 }
 
 .card {
@@ -30,16 +30,18 @@ h1 {
   margin: 10px auto;
   padding: 15px;
   border-radius: 12px;
-  width: 80%;
-  font-size: 20px;
+  width: 85%;
+  font-size: 18px;
 }
+</style>
+</head>
 
 <body>
 
 <img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
-<h1>🏆 Resultado da Votação</h1>
+<h1>Resultado da Votação</h1>
 
-<div id="ranking"></div>
+<div id="lista"></div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -48,38 +50,45 @@ const supabaseClient = supabase.createClient(
 );
 
 async function carregar() {
-  let { data, error } = await supabaseClient
-    .from("participantes")
-    .select("*");
+  try {
+    let { data, error } = await supabaseClient
+      .from("participantes")
+      .select("*");
 
-  if (error) {
-    console.error(error);
-    return;
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    let lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+    // opcional: ordenar por votos
+    data.sort((a, b) => b.votos - a.votos);
+
+    data.forEach(p => {
+      lista.innerHTML += `
+        <div class="card">
+          ${p.nome}<br>
+          ${p.votos} votos
+        </div>
+      `;
+    });
+
+  } catch (e) {
+    console.error(e);
   }
-
-  // ainda ordena por votos (opcional)
-  data.sort((a, b) => b.votos - a.votos);
-
-  let div = document.getElementById("ranking");
-  div.innerHTML = "";
-
-  data.forEach((p) => {
-    div.innerHTML += `
-      <div class="card">
-        ${p.nome} <br>
-        ${p.votos} votos
-      </div>
-    `;
-  });
 }
 
-// 🔥 realtime (atualiza sozinho)
+// 🔥 Atualização automática (tempo real)
 supabaseClient
-  .channel('ranking')
+  .channel('realtime')
   .on(
     'postgres_changes',
     { event: '*', schema: 'public', table: 'participantes' },
-    () => carregar()
+    () => {
+      carregar();
+    }
   )
   .subscribe();
 
