@@ -45,7 +45,7 @@ h1 {
 <img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
 <h1>🏆 Resultado da Votação</h1>
 
-<div id="ranking"></div>
+<div id="ranking">Carregando...</div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -54,47 +54,62 @@ const supabaseClient = supabase.createClient(
 );
 
 async function carregar() {
-  let { data, error } = await supabaseClient
-    .from("participantes")
-    .select("*");
+  try {
+    let { data, error } = await supabaseClient
+      .from("participantes")
+      .select("*");
 
-  if (error) {
-    console.error(error);
-    return;
+    if (error) {
+      console.error("Erro:", error);
+      document.getElementById("ranking").innerHTML = "Erro ao carregar dados";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      document.getElementById("ranking").innerHTML = "Nenhum voto ainda";
+      return;
+    }
+
+    // ordenar por votos
+    data.sort((a, b) => (b.votos || 0) - (a.votos || 0));
+
+    let div = document.getElementById("ranking");
+    div.innerHTML = "";
+
+    data.forEach((p, i) => {
+      let classe = "";
+      let medalha = `${i+1}º`;
+
+      if (i === 0) { classe = "top1"; medalha = "🥇"; }
+      else if (i === 1) { classe = "top2"; medalha = "🥈"; }
+      else if (i === 2) { classe = "top3"; medalha = "🥉"; }
+
+      div.innerHTML += `
+        <div class="card ${classe}">
+          ${medalha} ${p.nome} <br>
+          ${p.votos || 0} votos
+        </div>
+      `;
+    });
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById("ranking").innerHTML = "Erro inesperado";
   }
-
-  // ordenar por votos
-  data.sort((a, b) => b.votos - a.votos);
-
-  let div = document.getElementById("ranking");
-  div.innerHTML = "";
-
-  data.forEach((p, i) => {
-    let classe = "";
-    let medalha = `${i+1}º`;
-
-    if (i === 0) { classe = "top1"; medalha = "🥇"; }
-    else if (i === 1) { classe = "top2"; medalha = "🥈"; }
-    else if (i === 2) { classe = "top3"; medalha = "🥉"; }
-
-    div.innerHTML += `
-      <div class="card ${classe}">
-        ${medalha} ${p.nome} <br>
-        ${p.votos} votos
-      </div>
-    `;
-  });
 }
 
-// 🔥 realtime (atualiza sozinho)
+// 🔥 ATUALIZAÇÃO AUTOMÁTICA (VERSÃO SEGURA)
 supabaseClient
   .channel('ranking')
   .on(
     'postgres_changes',
-    { event: '*', schema: 'public', table: 'participantes' },
+    { event: 'UPDATE', schema: 'public', table: 'participantes' },
     () => carregar()
   )
   .subscribe();
+
+// 🔄 fallback (caso realtime falhe)
+setInterval(carregar, 5000);
 
 // primeira carga
 carregar();
