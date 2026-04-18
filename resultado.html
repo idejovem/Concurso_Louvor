@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resultado ao Vivo</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: linear-gradient(180deg, #0a0f2c, #050816);
+  color: white;
+  text-align: center;
+}
+
+.logo {
+  width: 150px;
+  margin-top: 20px;
+}
+
+h1 {
+  margin-top: 10px;
+}
+
+.card {
+  background: #11183a;
+  margin: 10px auto;
+  padding: 15px;
+  border-radius: 12px;
+  width: 80%;
+  font-size: 20px;
+}
+
+.top1 { border: 3px solid gold; }
+.top2 { border: 3px solid silver; }
+.top3 { border: 3px solid #cd7f32; }
+</style>
+</head>
+
+<body>
+
+<img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
+<h1>🏆 Resultado da Votação</h1>
+
+<div id="ranking"></div>
+
+<script>
+const supabaseClient = supabase.createClient(
+  "https://domjktwbgysvjrlqrcdr.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvbWprdHdiZ3lzdmpybHFyY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0MjcwNDMsImV4cCI6MjA5MjAwMzA0M30.9lL54NbCxywjdNgo5MdZDSWmmLj3dMqR_788zwGP354"
+);
+
+async function carregar() {
+  let { data, error } = await supabaseClient
+    .from("participantes")
+    .select("*");
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  // ordenar por votos
+  data.sort((a, b) => b.votos - a.votos);
+
+  let div = document.getElementById("ranking");
+  div.innerHTML = "";
+
+  data.forEach((p, i) => {
+    let classe = "";
+    let medalha = `${i+1}º`;
+
+    if (i === 0) { classe = "top1"; medalha = "🥇"; }
+    else if (i === 1) { classe = "top2"; medalha = "🥈"; }
+    else if (i === 2) { classe = "top3"; medalha = "🥉"; }
+
+    div.innerHTML += `
+      <div class="card ${classe}">
+        ${medalha} ${p.nome} <br>
+        ${p.votos} votos
+      </div>
+    `;
+  });
+}
+
+// 🔥 realtime (atualiza sozinho)
+supabaseClient
+  .channel('ranking')
+  .on(
+    'postgres_changes',
+    { event: '*', schema: 'public', table: 'participantes' },
+    () => carregar()
+  )
+  .subscribe();
+
+// primeira carga
+carregar();
+</script>
+
+</body>
+</html>
