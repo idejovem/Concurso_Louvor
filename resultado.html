@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Resultado da Votação</title>
+<title>Resultado ao Vivo</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
@@ -17,12 +17,12 @@ body {
 }
 
 .logo {
-  width: 140px;
+  width: 150px;
   margin-top: 20px;
 }
 
 h1 {
-  margin: 10px 0;
+  margin-top: 10px;
 }
 
 .card {
@@ -30,18 +30,22 @@ h1 {
   margin: 10px auto;
   padding: 15px;
   border-radius: 12px;
-  width: 85%;
-  font-size: 18px;
+  width: 80%;
+  font-size: 20px;
 }
+
+.top1 { border: 3px solid gold; }
+.top2 { border: 3px solid silver; }
+.top3 { border: 3px solid #cd7f32; }
 </style>
 </head>
 
 <body>
 
 <img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
-<h1>Resultado da Votação</h1>
+<h1>🏆 Resultado da Votação</h1>
 
-<div id="lista"></div>
+<div id="ranking"></div>
 
 <script>
 const supabaseClient = supabase.createClient(
@@ -50,45 +54,44 @@ const supabaseClient = supabase.createClient(
 );
 
 async function carregar() {
-  try {
-    let { data, error } = await supabaseClient
-      .from("participantes")
-      .select("*");
+  let { data, error } = await supabaseClient
+    .from("participantes")
+    .select("*");
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    let lista = document.getElementById("lista");
-    lista.innerHTML = "";
-
-    // opcional: ordenar por votos
-    data.sort((a, b) => b.votos - a.votos);
-
-    data.forEach(p => {
-      lista.innerHTML += `
-        <div class="card">
-          ${p.nome}<br>
-          ${p.votos} votos
-        </div>
-      `;
-    });
-
-  } catch (e) {
-    console.error(e);
+  if (error) {
+    console.error(error);
+    return;
   }
+
+  // ordenar por votos
+  data.sort((a, b) => b.votos - a.votos);
+
+  let div = document.getElementById("ranking");
+  div.innerHTML = "";
+
+  data.forEach((p, i) => {
+    let classe = "";
+    let medalha = `${i+1}º`;
+
+    if (i === 0) { classe = "top1"; medalha = "🥇"; }
+
+
+    div.innerHTML += `
+      <div class="card ${classe}">
+        ${medalha} ${p.nome} <br>
+        ${p.votos} votos
+      </div>
+    `;
+  });
 }
 
-// 🔥 Atualização automática (tempo real)
+// 🔥 realtime (atualiza sozinho)
 supabaseClient
-  .channel('realtime')
+  .channel('ranking')
   .on(
     'postgres_changes',
     { event: '*', schema: 'public', table: 'participantes' },
-    () => {
-      carregar();
-    }
+    () => carregar()
   )
   .subscribe();
 
