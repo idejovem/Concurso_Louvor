@@ -34,12 +34,6 @@ h1 {
   font-size: 20px;
 }
 
-.top1 { border: 3px solid gold; }
-.top2 { border: 3px solid silver; }
-.top3 { border: 3px solid #cd7f32; }
-</style>
-</head>
-
 <body>
 
 <img src="https://i.postimg.cc/RVZG1MxN/IDE-Jovem.png" class="logo">
@@ -63,23 +57,16 @@ async function carregar() {
     return;
   }
 
-  // ordenar por votos
+  // ainda ordena por votos (opcional)
   data.sort((a, b) => b.votos - a.votos);
 
   let div = document.getElementById("ranking");
   div.innerHTML = "";
 
-  data.forEach((p, i) => {
-    let classe = "";
-    let medalha = `${i+1}º`;
-
-    if (i === 0) { classe = "top1"; medalha = "🥇"; }
-    else if (i === 1) { classe = "top2"; medalha = "🥈"; }
-    else if (i === 2) { classe = "top3"; medalha = "🥉"; }
-
+  data.forEach((p) => {
     div.innerHTML += `
-      <div class="card ${classe}">
-        ${medalha} ${p.nome} <br>
+      <div class="card">
+        ${p.nome} <br>
         ${p.votos} votos
       </div>
     `;
