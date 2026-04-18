@@ -71,7 +71,9 @@ input {
   <h2>Escolha um participante</h2>
   <div id="listaVotar"></div>
 
-  <button onclick="confirmarVoto()">Confirmar Voto</button>
+  <!-- 🔥 BOTÃO CORRIGIDO -->
+  <button id="btnVotar" onclick="confirmarVoto()">Confirmar Voto</button>
+
   <br>
   <button onclick="ir('home')">Voltar</button>
 </div>
@@ -111,7 +113,10 @@ function ir(tela) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(tela).classList.add("active");
 
-  if (tela === "votar" || tela === "admin") carregar();
+  if (tela === "votar" || tela === "admin") {
+    carregar();
+    verificarBotao(); // 🔥 importante
+  }
 }
 
 /* LOGIN */
@@ -205,17 +210,45 @@ function selecionar(id) {
 
 /* VOTAR */
 async function confirmarVoto() {
+
+  if (localStorage.getItem("jaVotou")) {
+    alert("Você já votou neste dispositivo!");
+    return;
+  }
+
   if (!selecionado) return alert("Escolha alguém");
 
   let p = participantes.find(x => x.id === selecionado);
 
-  await supabaseClient
+  let { error } = await supabaseClient
     .from("participantes")
     .update({ votos: p.votos + 1 })
     .eq("id", selecionado);
 
+  if (error) {
+    console.error(error);
+    return alert("Erro ao votar");
+  }
+
+  localStorage.setItem("jaVotou", "sim");
+
   alert("Voto computado!");
   ir("home");
+}
+
+/* 🔥 BLOQUEIO VISUAL */
+function verificarBotao() {
+  let btn = document.getElementById("btnVotar");
+
+  if (!btn) return;
+
+  if (localStorage.getItem("jaVotou")) {
+    btn.disabled = true;
+    btn.innerText = "Você já votou";
+  } else {
+    btn.disabled = false;
+    btn.innerText = "Confirmar Voto";
+  }
 }
 
 /* ADMIN */
